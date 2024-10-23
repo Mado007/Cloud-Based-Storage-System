@@ -32,12 +32,16 @@ async def upload_file(file: UploadFile = File(...)):
         # Check if the file already exists in S3
         existing_files = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=file.filename)
 
-        # Check if there are any existing files with the same name
         if existing_files.get('KeyCount', 0) > 0:
             raise HTTPException(status_code=400, detail=f"File '{file.filename}' already exists.")
 
-        # Upload the file to S3
-        s3.upload_fileobj(file.file, S3_BUCKET_NAME, file.filename)
+        # Upload the file to S3 with Server-Side Encryption (SSE-S3)
+        s3.upload_fileobj(
+            file.file, 
+            S3_BUCKET_NAME, 
+            file.filename,
+            ExtraArgs={'ServerSideEncryption': 'AES256'}  # SSE-S3 encryption
+        )
         return {"message": f"File '{file.filename}' uploaded successfully"}
     
     except NoCredentialsError:
