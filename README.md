@@ -3,6 +3,7 @@
 ## Table of Contents
 - [Overview](#overview)
 - [Project Objectives](#project-objectives)
+- [Security Measures](#Security-Measures)
 - [Target Audience](#target-audience)
 - [Assessment Deliverables](#assessment-deliverables)
 - [How to Run the Project](#how-to-run-the-project)
@@ -17,6 +18,35 @@ The primary objective of this project is to assess applicants' technical compete
 - Cloud computing skills
 - Backend development capabilities
 - Strong understanding of data security principles
+
+## Security Measures
+
+This project includes multiple security features to ensure that all data stored and transmitted through the cloud-based storage system is protected.
+
+### 1. File Encryption (SSE-S3)
+We implemented **Server-Side Encryption (SSE-S3)** to encrypt all files at rest. Files uploaded to the S3 bucket are automatically encrypted using **AES-256**, ensuring that sensitive data remains secure while stored.
+
+- **Why:** SSE-S3 protects data against unauthorized access at the storage layer.
+- **How:** Every file upload request is configured to use AES-256 encryption by default.
+
+### 2. Secure Data Transmission (TLS Encryption)
+All data transmitted between the client and the cloud service uses **Transport Layer Security (TLS)**, ensuring that the data in transit is encrypted and secure from man-in-the-middle (MITM) attacks.
+
+- **Why:** TLS ensures that data sent over the network is encrypted and protected during transmission.
+- **How:** AWS S3 and FastAPI both support TLS, securing data transmission during API interactions.
+
+### 3. User Authentication (OAuth 2.0)
+We use **OAuth 2.0** to authenticate and authorize users. The system generates and verifies JWT tokens, ensuring that only authorized users can interact with the API endpoints.
+
+- **Why:** OAuth 2.0 ensures that only authenticated users can access or modify files, providing strong user identity verification.
+- **How:** Users must obtain a JWT token via the `/token` endpoint and include it in all subsequent API requests.
+
+### 4. Access Control (RBAC)
+Role-Based Access Control (RBAC) is used to manage permissions. Users are assigned roles (e.g., Admin, User), and access is granted based on the role they hold.
+
+- **Why:** RBAC allows us to restrict or grant access to specific resources or actions based on user roles.
+- **How:** Set up IAM roles and policies within AWS to manage user permissions for accessing or managing S3 objects.
+
 
 ## Target Audience
 This project is intended for:
