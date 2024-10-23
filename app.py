@@ -1,10 +1,12 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 import boto3
 from botocore.exceptions import NoCredentialsError
-import uvicorn
 from dotenv import load_dotenv
 import os
+import uvicorn
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,6 +16,8 @@ AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("AWS_REGION")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
 
 # Initialize the S3 client with the credentials
 s3 = boto3.client(
@@ -23,11 +27,26 @@ s3 = boto3.client(
     region_name=AWS_REGION
 )
 
+# OAuth2 scheme for token handling
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+# FastAPI app initialization
 app = FastAPI()
 
-# Upload file to S3 bucket
+# Function to decode the JWT token
+async def authenticate_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        return username
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+# Upload file to S3 bucket with SSE-S3 encryption and authentication
 @app.post("/upload/")
-async def upload_file(file: UploadFile = File(...)):
+async def upload_file(file: UploadFile = File(...), token: str = Depends(authenticate_user)):
     try:
         # Check if the file already exists in S3
         existing_files = s3.list_objects_v2(Bucket=S3_BUCKET_NAME, Prefix=file.filename)
@@ -43,15 +62,15 @@ async def upload_file(file: UploadFile = File(...)):
             ExtraArgs={'ServerSideEncryption': 'AES256'}  # SSE-S3 encryption
         )
         return {"message": f"File '{file.filename}' uploaded successfully"}
-    
+
     except NoCredentialsError:
         raise HTTPException(status_code=403, detail="AWS Credentials not found")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
-# Download file from S3 bucket (generates a presigned URL)
+# Download file from S3 bucket (generates a presigned URL with authentication)
 @app.get("/download/{filename}")
-async def download_file(filename: str):
+async def download_file(filename: str, token: str = Depends(authenticate_user)):
     try:
         # Generate a presigned URL for the file download
         file_url = s3.generate_presigned_url(
@@ -63,9 +82,9 @@ async def download_file(filename: str):
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"File '{filename}' not found or download failed: {str(e)}")
 
-# Share file (generates a presigned URL for sharing)
+# Share file (generates a presigned URL for sharing with authentication)
 @app.post("/share/{filename}")
-async def share_file(filename: str):
+async def share_file(filename: str, token: str = Depends(authenticate_user)):
     try:
         # Generate a presigned URL for sharing
         share_url = s3.generate_presigned_url(
@@ -77,9 +96,9 @@ async def share_file(filename: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Could not generate shareable URL: {str(e)}")
 
-# Delete file from S3
+# Delete file from S3 with authentication
 @app.delete("/delete/{filename}")
-async def delete_file(filename: str):
+async def delete_file(filename: str, token: str = Depends(authenticate_user)):
     try:
         # Delete the file from S3
         s3.delete_object(Bucket=S3_BUCKET_NAME, Key=filename)
