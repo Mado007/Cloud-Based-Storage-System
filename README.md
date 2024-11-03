@@ -112,6 +112,3 @@ To run the **Cloud-Based Storage System** locally, follow these steps:
 
 ## License
 This project is licensed under the [MIT License](LICENSE). Feel free to explore, modify, and distribute the codebase. For any questions or feedback, please contact us at [Mahmoud Eid](mailto:eng.mahmod.eid.elsayed@gmail.com).
-
-## Conclusion
-The **Cloud-Based Storage System** project serves as a vital stepping stone for aspiring engineers to validate their technical skills and address real-world business problems. Through this initiative, we aim to identify and nurture talent for the IT industry, ensuring a pool of skilled professionals ready to meet the demands of the evolving tech landscape.
